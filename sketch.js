@@ -1,17 +1,19 @@
+const circles = [];
 function setup() {
-    createCanvas(800, 600);
-    c = new Circle(width/2, 50, 10)
+    createCanvas(400, 600);
+    frameRate(1000)
 }
-  //разбить по файлам, перейти в vscode, инициализировать репо
-  //добавить класс классов
-  //добавить ввод для выбора места сброса шаров
-  //добавить коллизию, для себя разобраться как работает
-  //добавить логику выбора шара, логику рандома, классификацию
-  //добавить соединение шаров
   
   function draw() {
     background(220);
-    c.update();
-    c.edges();
-    c.show();
-  }
+
+    for(const c of circles) {
+        c.update();
+        c.edges();
+        c.show();
+        for(const j of circles) {
+            if(c == j) continue;
+            c.collide(j);
+        }
+    }
+}
