@@ -102,15 +102,17 @@ new p5((p) => {
                 if (ball.id !== other.id) continue;
 
                 const enoughTimePassed = p.millis() - collisionLastTime >= collisionDelay;
-                if (ball.collidesWith(other) && enoughTimePassed) {
+                if (ball.collidesWith(other)) {
                     // Если коллизия происходит у верхнего края, убираем пол
                     if (other.y <= UPPER_BORDER || ball.y <= UPPER_BORDER) {
                         removeGround();
                         isGroundRemoved = true;
                     }
-                    // Разруливаем саму коллизию
-                    ball.handleCollision(other, p.millis());
-                    collisionLastTime = p.millis();
+                    if(enoughTimePassed) {
+                        // Разруливаем саму коллизию
+                        ball.handleCollision(other, p.millis());
+                        collisionLastTime = p.millis();
+                    }
                 }
             }
 
