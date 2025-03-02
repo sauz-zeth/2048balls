@@ -72,7 +72,7 @@ class Ball {
     // Общие опции для Matter.js
     options = {
         restitution: 0.1,
-        friction: 0.2,
+        friction: 0.1,
         density: 0.001,
     };
 
