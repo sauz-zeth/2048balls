@@ -38,6 +38,7 @@ new p5((p) => {
         p.createCanvas(WIDTH, HEIGHT);
     };
 
+
     p.draw = function () {
         p.background(51);
 
@@ -56,18 +57,26 @@ new p5((p) => {
         p.circle(mX, gball.radius, gball.radius * 2);
 
         // Обработка клика мыши (создание нового шара)
-        p.mouseReleased = function () {
+        function handleRelease() {
             if (p.millis() - clickLastTime >= clickDelay) {
                 spawnBall(mX, gball.radius, currentId, p.millis());
-                killBall(0); // Удаляем призрачный шар с индексом 0 (если есть)
+                killBall(0); // Удаляем призрачный шар
 
-                // Генерируем новый ID и призрачный шар для следующего клика
                 currentId = availableId();
                 gball = ghostBall(mX, gball.radius, currentId);
 
                 clickLastTime = p.millis();
             }
+        }
+
+        p.mouseReleased = function() {
+            handleRelease();
         };
+
+        p.touchEnded = function() {
+            handleRelease();
+        };
+
 
         // Логика и отрисовка "реальных" шаров
         for (let ball of balls) {
