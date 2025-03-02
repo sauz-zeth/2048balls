@@ -1,0 +1,21 @@
+{
+  "name": "vite2048balls",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/matter-js": "^0.19.8",
+    "@types/p5": "^1.7.6",
+    "vite": "^6.2.0"
+  },
+  "dependencies": {
+    "5p": "^0.0.0",
+    "matter-js": "^0.20.0",
+    "p5": "^1.11.3"
+  }
+}
