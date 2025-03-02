@@ -1,98 +1,163 @@
 import Matter from "matter-js";
-import p5 from "p5";
 
+// Константы
+const WIDTH = 300;
+const HEIGHT = 600;
+
+const UPPER_BORDER = 100;
+
+// Свойства мячей (радиусы, цвета) вынесены за пределы класса
+const BALL_PROPERTIES = [
+    { radius: 15, color: "#EA4747" },
+    { radius: 22, color: "#EAA147" },
+    { radius: 28, color: "#DAEA47" },
+    { radius: 34, color: "#96ea47" },
+    { radius: 40, color: "#31dd7c" },
+    { radius: 46, color: "#47EAC1" },
+    { radius: 52, color: "#47B9EA" },
+    { radius: 58, color: "#4799ea" },
+    { radius: 64, color: "#8347ea" },
+    { radius: 70, color: "#E247EA" },
+    { radius: 76, color: "#EA4799" },
+];
+
+// Настройки Matter.js
+let engine = Matter.Engine.create();
+Matter.Runner.run(engine);
+
+// Массив для хранения созданных мячей
+const balls = [];
+
+// Глобальный индекс для учёта новых мячей
+let ballIndex = 1;
+
+// Класс Ball
 class Ball {
-    constructor(spawnX, spawnY, id, index, spawn_time) {
+    constructor(spawnX, spawnY, id, index, spawnTime) {
         this.spawnX = spawnX;
         this.spawnY = spawnY;
         this.id = id;
         this.index = index;
+        this.spawnTime = spawnTime;
+        this.animationTime = 300;
+        this.fakeRadius = 0;
 
-        this.initializeProperties(); // Устанавливаем radius и color
+        // Инициализируем свойства (радиус, цвет) на основе id
+        this.initializeProperties(id);
 
-        this.circleBody = Matter.Bodies.circle(this.spawnX, this.spawnY, this.radius, this.options);
+        // Создаём физическое тело круга из Matter.js
+        this.circleBody = Matter.Bodies.circle(
+            this.spawnX,
+            this.spawnY,
+            this.radius,
+            this.options
+        );
+
+        // Текущее положение
         this.x = this.circleBody.position.x;
         this.y = this.circleBody.position.y;
-        this.fake_radius = 0;
-        this.spawn_time = spawn_time;
-        this.animation_time = 300;
     }
 
+    // Общие опции для Matter.js
     options = {
         restitution: 0.1,
         friction: 0.05,
         density: 0.001,
     };
 
-    initializeProperties() {
-
-        const properties = {
-            0: { radius: 15, color: "#EA4747" },
-            1: { radius: 22, color: "#EAA147" },
-            2: { radius: 28, color: "#DAEA47" },
-            3: { radius: 34, color: "#80EA47" },
-            4: { radius: 40, color: "#47EA68" },
-            5: { radius: 46, color: "#47EAC1" },
-            6: { radius: 52, color: "#47B9EA" },
-            7: { radius: 58, color: "#475FEA" },
-            8: { radius: 64, color: "#8847EA" },
-            9: { radius: 70, color: "#E247EA" },
-            10: { radius: 76, color: "#EA4799" }
-        };
-
-        const props = properties[this.id];
-
-        this.radius = props.radius;
-        this.color = props.color;
+    // Установка радиуса и цвета из BALL_PROPERTIES
+    initializeProperties(id) {
+        const { radius, color } = BALL_PROPERTIES[id];
+        this.radius = radius;
+        this.color = color;
     }
 
+    // Добавить мяч в мир
     spawn(world) {
         Matter.Composite.add(world, this.circleBody);
     }
+
+    // Удалить мяч из мира
     kill(world) {
         Matter.Composite.remove(world, this.circleBody);
     }
 
+    // Обновление координат
     update() {
         this.x = this.circleBody.position.x;
         this.y = this.circleBody.position.y;
     }
 
-    collidesWith(ball) {
-        let dx = ball.x - this.x;
-        let dy = ball.y - this.y;
-        let distance = Math.sqrt(dx * dx + dy * dy);
-
-        return (distance <= ball.radius + this.radius);
+    // Проверка на столкновение с другим мячом
+    collidesWith(otherBall) {
+        const dx = otherBall.x - this.x;
+        const dy = otherBall.y - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        return distance <= otherBall.radius + this.radius;
     }
 
-    handleCollision(ball, spawn_time) {
-        if (this.id === ball.id) {
-            const [x, y] = new_ball_coords(this, ball);
-            const id = ball.id + 1;
-            kill_ball(this.index);
-            kill_ball(ball.index);
-            spawn_ball(x, y, id, spawn_time);
+    // Логика при столкновении
+    // Решение: передаём управление "снаружи",
+    // чтобы класс Ball не зависел от глобальных функций.
+    handleCollision(otherBall, spawnTime) {
+        if (this.id === otherBall.id) {
+            const coords = getMidpoint(this, otherBall);
+            const newId = this.id + 1;
+
+            killBall(this.index);
+            killBall(otherBall.index);
+            spawnBall(coords.x, coords.y, newId, spawnTime);
         }
     }
 
 }
 
-let engine = Matter.Engine.create();
-Matter.Runner.run(engine);
+// ============================
+// Функции управления шарами
+// ============================
+function spawnBall(x, y, id, spawnTime) {
+    const newBall = new Ball(x, y, id, ballIndex, spawnTime);
+    newBall.spawn(engine.world);
+    balls[ballIndex] = newBall;
+    ballIndex++;
+}
 
-const balls = [];
-let ball_index = 1
+function killBall(index) {
+    if (!balls[index]) return;
+    balls[index].kill(engine.world);
+    delete balls[index];
+}
 
-function generateWeights(n,  fixedSize = 11) {
-    if (n === 0 || isNaN(n)) {
+// ============================
+// Вспомогательные функции
+// ============================
+
+// Расчёт "средней точки" между двумя шарами (для спавна нового шара)
+function getMidpoint(ballA, ballB) {
+    const nx = ballA.x - (ballA.x - ballB.x) / 2;
+    const ny = ballA.y - (ballA.y - ballB.y) / 2;
+    return {x: nx, y: ny};
+}
+
+// "Призрачный" мяч без добавления в массив
+function ghostBall(x, y, id) {
+    // index можно условно поставить 0 или null
+    return new Ball(x, y, id, 0, Date.now());
+}
+
+// Генерация весов для случайного выбора id
+function generateWeights(n, fixedSize = 11) {
+    if (!n || isNaN(n) || n <= 0) {
         n = 1;
     }
+    // Всегда размер массива равен fixedSize
+    const sequence = new Array(fixedSize).fill(0);
 
-    let a = (2  / (n + 1));
-    let d = a / n;
+    // a — базовое значение, d — "шаг" уменьшения
+    const a = 2 / (n + 1);
+    const d = a / n;
 
-    let sequence = new Array(fixedSize).fill(0);
+    // Перебор до n+1, чтобы покрыть все индексы
     for (let i = 0; i < n + 1; i++) {
         sequence[i] = a - i * d;
     }
@@ -100,64 +165,78 @@ function generateWeights(n,  fixedSize = 11) {
     return sequence;
 }
 
-function available_id() {
-    const maxId = balls.length > 0
-        ? Math.max(...balls.filter(ball => ball !== undefined && ball !== null).map(ball => ball.id))
-        : 0;
-    console.log(maxId);
+// Выбирает id на основе сгенерированных весов
+function availableId() {
+    const existingBalls = balls.filter((b) => b !== undefined && b !== null);
+    const maxId = existingBalls.length > 0 ? Math.max(...existingBalls.map((b) => b.id)) : 0;
 
     const weights = generateWeights(maxId);
-    let random = Math.random();
 
+    const randomValue = Math.random();
     let cumulativeWeight = 0;
+
     for (let id = 0; id < weights.length; id++) {
         cumulativeWeight += weights[id];
-        if(random < cumulativeWeight) {
+        if (randomValue < cumulativeWeight) {
             return id;
         }
     }
+    // На случай если сумма весов < 1 (защита от погрешности),
+    // возвращаем последний индекс:
+    return weights.length - 1;
 }
 
-function new_ball_coords(ball1, ball2) {
-    const x = ball1.x - (ball1.x - ball2.x) / 2;
-    const y = ball1.y - (ball1.y - ball2.y) / 2;
-    return [x, y];
-}
-
-function spawn_ball(x, y, id, spawn_time) {
-    let b = new Ball(x, y, id, ball_index, spawn_time);
-    b.spawn(engine.world);
-    balls[ball_index] = b;
-    ball_index++;
-}
-
-function kill_ball(index) {
-    if (balls[index] === undefined) return;
-    balls[index].kill(engine.world);
-    delete balls[index];
-
-}
-
-function ghost_ball(x, y, id) {
-    return new Ball(x, y, id, 0);
-}
-
-const WIDTH = 300;
-const HEIGHT = 600;
-
-function fix_mouseX(mouseX, gball) {
-    if (mouseX > WIDTH - gball.radius) {return WIDTH - gball.radius}
-    if (mouseX < gball.radius) {return gball.radius}
+// Ограничение координаты X мыши, чтобы не выходила за край и не "обрезала" мяч
+function clampMouseX(mouseX, gball) {
+    if (mouseX > WIDTH - gball.radius) return WIDTH - gball.radius;
+    if (mouseX < gball.radius) return gball.radius;
     return mouseX;
 }
 
+// Конвертация hex-цвета в rgba
 function hexToRGBA(hex, alpha = 1) {
-    let r = parseInt(hex.substring(1, 3), 16);
-    let g = parseInt(hex.substring(3, 5), 16);
-    let b = parseInt(hex.substring(5, 7), 16);
+    const r = parseInt(hex.substring(1, 3), 16);
+    const g = parseInt(hex.substring(3, 5), 16);
+    const b = parseInt(hex.substring(5, 7), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function easeOut(t) { return t * (2 - t); }
+// Простейшая функция плавности для анимаций
+function easeOut(t) {
+    return t * (2 - t);
+}
 
-export { balls, engine, spawn_ball, ghost_ball, kill_ball, available_id, fix_mouseX, hexToRGBA, WIDTH, HEIGHT, easeOut };
+const ground = Matter.Bodies.rectangle(WIDTH, HEIGHT + 10, 810, 20, { isStatic: true });
+const leftWall = Matter.Bodies.rectangle(-10, HEIGHT / 2, 20, HEIGHT, { isStatic: true });
+const rightWall = Matter.Bodies.rectangle(WIDTH + 10, HEIGHT / 2, 20, HEIGHT, { isStatic: true });
+Matter.Composite.add(engine.world, [ground, leftWall, rightWall]);
+
+// Убираем пол
+function removeGround() {
+    Matter.Composite.remove(engine.world, ground);
+}
+
+// Ставим пол
+function setGround() {
+    Matter.Composite.add(engine.world, ground);
+}
+
+// Экспорт
+export {
+    Ball,
+    balls,
+    engine,
+    spawnBall,
+    ghostBall,
+    killBall,
+    availableId,
+    clampMouseX,
+    hexToRGBA,
+    WIDTH,
+    HEIGHT,
+    easeOut,
+    removeGround,
+    setGround,
+    UPPER_BORDER,
+    getMidpoint,
+};

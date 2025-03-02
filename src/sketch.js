@@ -1,77 +1,127 @@
 import p5 from "p5";
 import Matter from "matter-js";
-import {engine, balls, spawn_ball, kill_ball, ghost_ball, available_id, WIDTH, HEIGHT, fix_mouseX, hexToRGBA, easeOut} from "./script.js";
-
+import {
+    balls,
+    engine,
+    spawnBall,
+    ghostBall,
+    killBall,
+    availableId,
+    clampMouseX,
+    hexToRGBA,
+    easeOut,
+    WIDTH,
+    HEIGHT,
+    removeGround,
+    setGround,
+    UPPER_BORDER,
+} from "./script.js";
 
 new p5((p) => {
+    // Текущий ID для шара (генерируется по весам)
+    let currentId = availableId();
+    // Призрачный шар (курсорный "превью-шар")
+    let gball = ghostBall(p.mouseX, 0, currentId);
+
+    // Переменные для контроля задержки при коллизиях
+    let collisionLastTime = 0;
+    const collisionDelay = 150;
+
+    // Переменные для контроля задержки при клике
+    let clickLastTime = 0;
+    const clickDelay = 300;
+
+    // Флаг, что пол убран
+    let isGroundRemoved = false;
+
     p.setup = function () {
         p.createCanvas(WIDTH, HEIGHT);
-
-        let ground = Matter.Bodies.rectangle(WIDTH, HEIGHT + 10, 810, 20, { isStatic: true });
-        let l_wall = Matter.Bodies.rectangle(-10, HEIGHT / 2, 20, HEIGHT, { isStatic: true });
-        let r_wall = Matter.Bodies.rectangle(WIDTH + 10, HEIGHT / 2, 20, HEIGHT, { isStatic: true });
-
-        Matter.Composite.add(engine.world, [ground, r_wall,l_wall]);
     };
-
-    let id = available_id();
-    let gball = ghost_ball(p.mouseX, 40, id);
-
-    let lastTime = 0;
-    let delay = 150;
 
     p.draw = function () {
         p.background(51);
 
+        // Тёмная зона сверху (граница)
+        p.fill("#222");
+        p.noStroke();
+        p.rect(0, 0, WIDTH, UPPER_BORDER);
+
+        // Обновляем физический движок
         Matter.Engine.update(engine);
-        p.fill(255, 0, 0);
 
-        const mX = fix_mouseX(p.mouseX, gball)
-
+        // Отрисовываем "призрачный" шар на позиции мыши
+        const mX = clampMouseX(p.mouseX, gball);
         p.noStroke();
         p.fill(hexToRGBA(gball.color, 0.5));
         p.circle(mX, gball.radius, gball.radius * 2);
 
-        p.mouseClicked = function() {
-            spawn_ball(mX, gball.radius, id, p.millis());
-            kill_ball(0);
+        // Обработка клика мыши (создание нового шара)
+        p.mouseClicked = function () {
+            if (p.millis() - clickLastTime >= clickDelay) {
+                spawnBall(mX, gball.radius, currentId, p.millis());
+                killBall(0); // Удаляем призрачный шар с индексом 0 (если есть)
 
-            id = available_id();
-            gball = ghost_ball(mX, gball.radius, id);
-        }
+                // Генерируем новый ID и призрачный шар для следующего клика
+                currentId = availableId();
+                gball = ghostBall(mX, gball.radius, currentId);
 
+                clickLastTime = p.millis();
+            }
+        };
+
+        // Логика и отрисовка "реальных" шаров
         for (let ball of balls) {
-            if (ball === undefined) continue;
+            if (!ball) continue;
 
+            // Обновляем координаты на основе Matter.js
             ball.update();
 
-            let elapsed = p.millis() - ball.spawn_time;
-            let progress = p.constrain(elapsed / ball.animation_time, 0, 1);
+            // Анимация "вырастания" (с 50% до 100% радиуса)
+            const elapsed = p.millis() - ball.spawnTime;
+            const progress = p.constrain(elapsed / ball.animationTime, 0, 1);
+            ball.fakeRadius = p.lerp(ball.radius * 0.5, ball.radius, easeOut(progress));
 
-            ball.fake_radius = p.lerp(ball.radius * 0.5, ball.radius, easeOut(progress));
+            // Проверяем столкновения с шарами такого же ID
+            for (let other of balls) {
+                if (!other || other === ball) continue;
+                if (ball.id !== other.id) continue;
 
-            for (let b of balls) {
-                if (b === undefined) continue;
-                if(b === ball) continue;
-                if (ball.id !== b.id) continue;
-
-                if(ball.collidesWith(b)) {
-                    if (p.millis() - lastTime >= delay) {
-                        ball.handleCollision(b, p.millis());
-                        lastTime = p.millis();
+                const enoughTimePassed = p.millis() - collisionLastTime >= collisionDelay;
+                if (ball.collidesWith(other) && enoughTimePassed) {
+                    // Если коллизия происходит у верхнего края, убираем пол
+                    if (other.y - other.radius <= UPPER_BORDER || ball.y - ball.radius <= UPPER_BORDER) {
+                        removeGround();
+                        isGroundRemoved = true;
                     }
+                    // Разруливаем саму коллизию
+                    ball.handleCollision(other, p.millis());
+                    collisionLastTime = p.millis();
                 }
             }
 
+            // Рисуем шар
             p.drawingContext.shadowBlur = ball.radius;
-            p.drawingContext.shadowColor = hexToRGBA(ball.color, 0.3)
+            p.drawingContext.shadowColor = hexToRGBA(ball.color, 0.3);
 
-            p.noStroke()
+            p.noStroke();
             p.fill(ball.color);
-            p.circle(ball.x, ball.y, ball.fake_radius * 2);
+            p.circle(ball.x, ball.y, ball.fakeRadius * 2);
 
+            // Сбрасываем тень после отрисовки
             p.drawingContext.shadowBlur = 0;
+
+            // Удаляем шар, если он "упал" за границу экрана
+            if (ball.y > HEIGHT) {
+                killBall(ball.index);
+            }
+        }
+
+        // Если все шары удалены и пол был убран, восстанавливаем пол
+        if (balls.every((b) => b === undefined) && isGroundRemoved) {
+            // Очищаем массив (на всякий случай)
+            balls.length = 0;
+            setGround();
+            isGroundRemoved = false;
         }
     };
 });
-
