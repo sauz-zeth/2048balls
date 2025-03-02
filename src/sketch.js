@@ -48,9 +48,9 @@ new p5((p) => {
 
         // Обновляем физический движок
         Matter.Engine.update(engine);
+        const mX = clampMouseX(p.mouseX, gball);
 
         // Отрисовываем "призрачный" шар на позиции мыши
-        const mX = clampMouseX(p.mouseX, gball);
         p.noStroke();
         p.fill(hexToRGBA(gball.color, 0.5));
         p.circle(mX, gball.radius, gball.radius * 2);

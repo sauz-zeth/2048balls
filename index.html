@@ -2,29 +2,53 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Запрещаем масштабирование на мобильных -->
+    <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, user-scalable=no"
+    >
+
     <title>balls</title>
+
     <style>
-        body {
-            background-color: #222; /* Темно-серый фон */
+        /* Убираем отступы и фоновый цвет документа */
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: #222;
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
 
-        * {
+            /* Отключаем стандартную "подсветку" при тапе на iOS */
+            -webkit-tap-highlight-color: transparent;
+
+            /* Запрещаем выделение текста */
             user-select: none;
         }
 
+        /* Убираем обводку у кликабельных элементов при фокусе */
+        button:focus,
+        input:focus {
+            outline: none;
+        }
+
+        /* Для всех элементов — запрет выделения */
+        * {
+            user-select: none;
+            -webkit-user-select: none; /* для Safari/старых iOS */
+            -ms-user-select: none;     /* для IE/Edge */
+        }
+
         canvas {
-            display: block; /* Убираем возможные отступы */
+            display: block; /* Убираем возможные отступы вокруг canvas */
         }
     </style>
 </head>
 <body>
+<!-- Ваш p5/sketch код -->
 <script type="module" src="/src/sketch.js"></script>
 </body>
 </html>
-
