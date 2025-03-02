@@ -180,6 +180,11 @@ function generateWeights(n, fixedSize = 11) {
 function availableId() {
     const existingBalls = balls.filter((b) => b !== undefined && b !== null);
     let maxId = existingBalls.length > 0 ? Math.max(...existingBalls.map((b) => b.id)) : 0;
+
+    if (maxId < 2) {
+        maxId = 2;
+    }
+
     if(maxId > 10) {
         maxId = 10;
     }
