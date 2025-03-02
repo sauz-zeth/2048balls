@@ -73,6 +73,12 @@ new p5((p) => {
         for (let ball of balls) {
             if (!ball) continue;
 
+            // Если шар очень большой, то ты проиграл лошара, в этой игре нельзя победить
+            if (ball.id === 20) {
+                removeGround();
+                isGroundRemoved = true;
+            }
+
             // Обновляем координаты на основе Matter.js
             ball.update();
 
@@ -89,7 +95,7 @@ new p5((p) => {
                 const enoughTimePassed = p.millis() - collisionLastTime >= collisionDelay;
                 if (ball.collidesWith(other) && enoughTimePassed) {
                     // Если коллизия происходит у верхнего края, убираем пол
-                    if (other.y - other.radius <= UPPER_BORDER || ball.y - ball.radius <= UPPER_BORDER) {
+                    if (other.y <= UPPER_BORDER || ball.y <= UPPER_BORDER) {
                         removeGround();
                         isGroundRemoved = true;
                     }

@@ -19,6 +19,17 @@ const BALL_PROPERTIES = [
     { radius: 64, color: "#8347ea" },
     { radius: 70, color: "#E247EA" },
     { radius: 76, color: "#EA4799" },
+    { radius: 82, color: "#EA4747" },
+    { radius: 88, color: "#EAA147" },
+    { radius: 94, color: "#DAEA47" },
+    { radius: 100, color: "#96ea47" },
+    { radius: 106, color: "#31dd7c" },
+    { radius: 112, color: "#47EAC1" },
+    { radius: 118, color: "#47B9EA" },
+    { radius: 124, color: "#4799ea" },
+    { radius: 130, color: "#8347ea" },
+    { radius: 136, color: "#E247EA" },
+    { radius: 142, color: "#EA4799" },
 ];
 
 // Настройки Matter.js
@@ -61,7 +72,7 @@ class Ball {
     // Общие опции для Matter.js
     options = {
         restitution: 0.1,
-        friction: 0.05,
+        friction: 0.2,
         density: 0.001,
     };
 
@@ -168,7 +179,10 @@ function generateWeights(n, fixedSize = 11) {
 // Выбирает id на основе сгенерированных весов
 function availableId() {
     const existingBalls = balls.filter((b) => b !== undefined && b !== null);
-    const maxId = existingBalls.length > 0 ? Math.max(...existingBalls.map((b) => b.id)) : 0;
+    let maxId = existingBalls.length > 0 ? Math.max(...existingBalls.map((b) => b.id)) : 0;
+    if(maxId > 10) {
+        maxId = 10;
+    }
 
     const weights = generateWeights(maxId);
 
