@@ -56,7 +56,7 @@ new p5((p) => {
         p.circle(mX, gball.radius, gball.radius * 2);
 
         // Обработка клика мыши (создание нового шара)
-        p.mouseClicked = function () {
+        p.mouseReleased = function () {
             if (p.millis() - clickLastTime >= clickDelay) {
                 spawnBall(mX, gball.radius, currentId, p.millis());
                 killBall(0); // Удаляем призрачный шар с индексом 0 (если есть)
