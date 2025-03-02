@@ -29,7 +29,7 @@ new p5((p) => {
 
     // Переменные для контроля задержки при клике
     let clickLastTime = 0;
-    const clickDelay = 300;
+    const clickDelay = 400;
 
     // Флаг, что пол убран
     let isGroundRemoved = false;
