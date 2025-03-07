@@ -108,6 +108,7 @@ new p5((p) => {
                         removeGround();
                         isGroundRemoved = true;
                     }
+
                     if(enoughTimePassed) {
                         // Разруливаем саму коллизию
                         ball.handleCollision(other, p.millis());
@@ -118,7 +119,7 @@ new p5((p) => {
 
             // Рисуем шар
             p.drawingContext.shadowBlur = ball.radius;
-            p.drawingContext.shadowColor = hexToRGBA(ball.color, 0.3);
+            p.drawingContext.shadowColor = hexToRGBA(ball.color, 0.5);
 
             p.noStroke();
             p.fill(ball.color);
